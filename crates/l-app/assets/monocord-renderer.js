@@ -2259,6 +2259,18 @@ ${CompactMessagesCSS}` : CompactMessagesCSS;
     { label: "Time since midnight", value: "time" },
     { label: "Custom start/end", value: "custom" }
   ];
+  var ASSET_PREFIXES = /^(?:gif|mp4|youtube|twitch|spotify|external|url):/i;
+  function assetValue(raw) {
+    const v = raw.trim();
+    if (!v || ASSET_PREFIXES.test(v)) return v;
+    if (/^https?:\/\//i.test(v) && (/\.gif($|\?)/i.test(v) || /media\.tenor\.com|i\.giphy\.com/i.test(v))) {
+      return `gif:${v}`;
+    }
+    return v;
+  }
+  function previewAssetUrl(v) {
+    return v.replace(/^(?:gif|mp4|youtube|twitch|spotify|external|url):/i, "");
+  }
   var FIELDS = [
     "enabled",
     "appId",
@@ -2354,12 +2366,12 @@ ${CompactMessagesCSS}` : CompactMessagesCSS;
     const imageSmall = str("imageSmall");
     if (imageBig || imageSmall) {
       const assets = {};
-      if (imageBig) assets.large_image = imageBig;
+      if (imageBig) assets.large_image = assetValue(imageBig);
       const bigTip = str("imageBigTooltip");
       const bigUrl = str("imageBigUrl");
       if (bigTip) assets.large_text = bigTip;
       if (bigUrl) assets.large_url = bigUrl;
-      if (imageSmall) assets.small_image = imageSmall;
+      if (imageSmall) assets.small_image = assetValue(imageSmall);
       const smallTip = str("imageSmallTooltip");
       const smallUrl = str("imageSmallUrl");
       if (smallTip) assets.small_text = smallTip;
@@ -2383,7 +2395,9 @@ ${CompactMessagesCSS}` : CompactMessagesCSS;
       const clean = {};
       for (const key of ["large_image", "large_text", "small_image", "small_text"]) {
         const v = assets[key];
-        if (typeof v === "string" && v) clean[key] = v;
+        if (typeof v === "string" && v) {
+          clean[key] = previewAssetUrl(v);
+        }
       }
       out.assets = clean;
     }
@@ -2398,8 +2412,9 @@ ${CompactMessagesCSS}` : CompactMessagesCSS;
       objectFit: "cover",
       flexShrink: 0
     };
-    if (/^https?:\/\//.test(key)) {
-      return h2("img", { src: key, style, alt: "" });
+    const url = previewAssetUrl(key);
+    if (/^https?:\/\//.test(url)) {
+      return h2("img", { src: url, style, alt: "" });
     }
     if (!key && appId) {
       return h2("img", {
@@ -2832,6 +2847,7 @@ ${CompactMessagesCSS}` : CompactMessagesCSS;
           )
         ) : null,
         label("Images"),
+        hint("Paste a .gif URL (Imgur/Tenor/Giphy) and it animates automatically. You can also use Discord's prefixes: gif:, mp4:, youtube:, twitch:."),
         pair(
           [
             "Large image key/URL",
