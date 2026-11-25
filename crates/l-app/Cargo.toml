@@ -1,6 +1,6 @@
 [package]
 name = "Monocord"
-description = "Monocord desktop application (eframe shell)"
+description = "Monocord — Discord client with plugin and theme support"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,31 +9,12 @@ license.workspace = true
 workspace = true
 
 [dependencies]
-l-core = { path = "../l-core" }
-l-ui = { path = "../l-ui" }
-l-storage = { path = "../l-storage" }
-l-widgets = { path = "../l-widgets" }
-l-discord = { path = "../l-discord" }
-l-runtime = { path = "../l-runtime" }
-l-plugins = { path = "../l-plugins" }
-eframe = "0.37"
-egui = "0.37"
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync", "net", "io-util", "fs", "process"] }
-tokio-util = "0.7"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-thiserror = "2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
 tracing-appender = "0.2"
 directories = "6"
-rfd = "0.15"
-secrecy = "0.10"
-rusqlite = { version = "0.32", features = ["bundled"] }
-image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp"] }
-fuzzy-matcher = "0.3"
-lucide-icons = "1"
 open = "5"
 wry = "=0.57.3"
 winit = "0.30"
-
