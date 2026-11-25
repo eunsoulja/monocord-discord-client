@@ -1,0 +1,48 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/l-core",
+    "crates/l-ui",
+    "crates/l-storage",
+    "crates/l-widgets",
+    "crates/l-discord",
+    "crates/l-runtime",
+    "crates/l-plugins",
+    "crates/l-app",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -2 }
+# Noisy pedantic categories not actionable for this codebase.
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+cast_possible_truncation = "allow"
+cast_precision_loss = "allow"
+cast_possible_wrap = "allow"
+cast_sign_loss = "allow"
+too_many_lines = "allow"
+similar_names = "allow"
+struct_excessive_bools = "allow"
+implicit_hasher = "allow"
+items_after_statements = "allow"
+module_name_repetitions = "allow"
+missing_const_for_fn = "allow"
+
+[patch.crates-io]
+# Vendored songbird: use the pure-Rust Opus backend (mousiki) so no C
+# toolchain / cmake is required to build voice support.
+songbird = { path = "vendor/songbird" }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
