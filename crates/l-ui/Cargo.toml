@@ -1,0 +1,13 @@
+[package]
+name = "l-ui"
+description = "Design system and reusable egui components for L"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+egui = "0.37"
+lucide-icons = "1"
