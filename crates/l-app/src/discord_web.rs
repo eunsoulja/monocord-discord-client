@@ -1,20 +1,12 @@
 //! Discord client window — the Legcord approach in Rust.
 //!
-//! A dedicated child *process* (`Monocord.exe --discord-web`) hosts a `wry`
-//! `WebView2` window loading `discord.com` with a persistent profile, so the
-//! user's *real* Discord account is used — Discord's own client handles
-//! auth. CSS/JS "mods" are injected from `<data>/discord-mods`
-//! (`*.css`, `*.js`), mirroring Legcord's `QuickCSS` / snippet model.
-//!
-//! Why a separate process: only one `winit`/`tao` event loop may exist per
-//! process, and eframe already owns the main one. A child process also
-//! isolates webview crashes from the dashboard.
+//! This binary *is* the Discord client: a `wry` `WebView2` window loading
+//! `discord.com` with a persistent profile, so the user's *real* Discord
+//! account is used — Discord's own client handles auth. CSS/JS "mods" are
+//! injected from `<data>/discord-mods` (`*.css`, `*.js`), and Monocord's
+//! plugin/theme framework is bridged in via `monocord.rs`.
 
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
-use std::sync::{Mutex, OnceLock};
-use std::thread;
-use std::time::Duration;
 
 use winit::application::ApplicationHandler;
 use winit::event::{StartCause, WindowEvent};
@@ -23,9 +15,6 @@ use winit::window::{Window, WindowId};
 use wry::{NewWindowResponse, WebContext, WebViewBuilder};
 
 use crate::monocord;
-
-/// CLI flag that turns this binary into the Discord client window.
-pub const WEB_FLAG: &str = "--discord-web";
 
 /// Discord web app entrypoint — the login page; Discord redirects
 /// authenticated sessions straight to the app.
@@ -84,94 +73,19 @@ enum WebMsg {
     IpcReply(String),
 }
 
-static DISCORD_CHILD: OnceLock<Mutex<Option<Child>>> = OnceLock::new();
-
-fn slot() -> &'static Mutex<Option<Child>> {
-    DISCORD_CHILD.get_or_init(|| Mutex::new(None))
-}
-
 /// `<data>/discord-mods` — user CSS/JS snippets injected into Discord.
 #[must_use]
 pub fn mods_dir() -> PathBuf {
-    data_dir().join("discord-mods")
+    app_data_dir().join("discord-mods")
 }
 
-fn data_dir() -> PathBuf {
+fn app_data_dir() -> PathBuf {
     monocord::app_data_dir()
 }
 
-/// Spawn the Discord client child process if it isn't already running.
-pub fn open_or_focus() -> Result<(), String> {
-    let mut guard = slot().lock().map_err(|_| "discord web lock poisoned".to_string())?;
-    if let Some(child) = guard.as_mut() {
-        match child.try_wait() {
-            Ok(None) => return Ok(()), // still running
-            _ => *guard = None,
-        }
-    }
-    spawn_child(&mut guard)
-}
-
-/// Kill the Discord client child process if running.
-pub fn close() {
-    if let Ok(mut guard) = slot().lock()
-        && let Some(child) = guard.as_mut()
-    {
-        let _ = child.kill();
-        let _ = child.wait();
-        *guard = None;
-    }
-}
-
-/// Restart the client so mod files are re-read (fresh webview + init script).
-pub fn restart() -> Result<(), String> {
-    close();
-    thread::sleep(Duration::from_millis(200));
-    let mut guard = slot().lock().map_err(|_| "discord web lock poisoned".to_string())?;
-    spawn_child(&mut guard)
-}
-
-/// Reload the page by restarting the client process.
-pub fn reload() {
-    let _ = restart();
-}
-
-/// Whether the client window process is currently running.
-#[must_use]
-pub fn is_open() -> bool {
-    let Ok(mut guard) = slot().lock() else {
-        return false;
-    };
-    if let Some(Ok(None)) = guard.as_mut().map(Child::try_wait) {
-        return true;
-    }
-    *guard = None;
-    false
-}
-
-/// Launch `current_exe --discord-web` detached.
-fn spawn_child(guard: &mut Option<Child>) -> Result<(), String> {
-    let exe = std::env::current_exe().map_err(|e| format!("current_exe failed: {e}"))?;
-    // Ensure the mods dir exists so users have somewhere to drop files.
-    let _ = std::fs::create_dir_all(mods_dir());
-    let child = Command::new(exe)
-        .arg(WEB_FLAG)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|e| format!("failed to spawn discord web process: {e}"))?;
-    *guard = Some(child);
-    Ok(())
-}
-
-// -- Standalone client mode (runs in the child process) ----------------------
-
-/// Window + webview owner for the standalone Discord client process.
-/// Called from `main` when `WEB_FLAG` is present; blocks until the window
-/// closes, then returns so the process can exit.
+/// Entry point — runs the Discord client window until it closes.
 pub fn run_client() {
-    init_child_logging();
+    init_logging();
     let mut handler = DiscordHandler::default();
     let event_loop = match winit::event_loop::EventLoop::<WebMsg>::with_user_event().build() {
         Ok(el) => el,
@@ -186,9 +100,9 @@ pub fn run_client() {
     }
 }
 
-fn init_child_logging() {
+fn init_logging() {
     use tracing_subscriber::prelude::*;
-    let dir = monocord::app_data_dir();
+    let dir = app_data_dir();
     let _ = std::fs::create_dir_all(&dir);
     let file_appender = tracing_appender::rolling::daily(&dir, "discord-web.log");
     let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
@@ -201,7 +115,7 @@ fn init_child_logging() {
         .init();
 }
 
-/// Application handler owning the Discord window + webview.
+/// Window + webview owner for the Discord client.
 #[derive(Default)]
 struct DiscordHandler {
     window: Option<Window>,
@@ -218,7 +132,7 @@ impl DiscordHandler {
         window: &Window,
         proxy: EventLoopProxy<WebMsg>,
     ) -> Result<(wry::WebView, WebContext), String> {
-        let mut web_context = WebContext::new(Some(data_dir().join("discord-webview")));
+        let mut web_context = WebContext::new(Some(app_data_dir().join("discord-webview")));
         let init_script = build_boot_script();
         let webview = WebViewBuilder::new_with_web_context(&mut web_context)
             .with_url(DISCORD_URL)
@@ -417,11 +331,9 @@ fn build_init_script(mods_dir: &Path) -> String {
 
 #[cfg(test)]
 mod tests {
-    /// Smoke test: launches the standalone client path briefly.
-    /// Run with `cargo test -p l-app discord_web -- --nocapture`.
+    /// Smoke test: verifies the init script embeds mod files.
     #[test]
-    fn client_mode_builds() {
-        // Just verify the init script embeds mod files without panicking.
+    fn init_script_embeds_mods() {
         let dir = std::env::temp_dir().join("l-mods-test");
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(dir.join("test.css"), "body { background: red; }").unwrap();
