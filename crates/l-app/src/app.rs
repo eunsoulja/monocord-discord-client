@@ -132,13 +132,9 @@ impl LApp {
             _runtime_enter: runtime_enter,
         };
         backend::hydrate(&app.shared);
-        // `l-app --discord` or `L_OPEN_DISCORD=1` opens the Discord client
-        // window alongside the dashboard (deferred through the action queue).
-        if std::env::args().any(|a| a == "--discord" || a == "discord")
-            || std::env::var_os("L_OPEN_DISCORD").is_some()
-        {
-            app.queue(Action::OpenDiscordClient);
-        }
+        // The Discord web client is the primary surface — open it on every
+        // launch (deferred through the action queue).
+        app.queue(Action::OpenDiscordClient);
         app
     }
 

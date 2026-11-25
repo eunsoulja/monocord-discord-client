@@ -27,8 +27,9 @@ use crate::monocord;
 /// CLI flag that turns this binary into the Discord client window.
 pub const WEB_FLAG: &str = "--discord-web";
 
-/// Discord web app entrypoint.
-const DISCORD_URL: &str = "https://discord.com/channels/@me";
+/// Discord web app entrypoint — the login page; Discord redirects
+/// authenticated sessions straight to the app.
+const DISCORD_URL: &str = "https://discord.com/login";
 
 /// `window.monocord` bridge — exposes Monocord's IPC contract over wry's
 /// `window.ipc.postMessage`. Replies come back through `__monocordResolve`,
