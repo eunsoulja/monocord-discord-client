@@ -1599,7 +1599,7 @@ fn settings_advanced(app: &mut LApp, ui: &mut Ui) {
     ui.add_space(8.0);
     ui.label(
         RichText::new(
-            "L — local-first discord companion. Data lives in SQLite; secrets in the OS keychain.",
+            "Monocord — local-first discord companion. Data lives in SQLite; secrets in the OS keychain.",
         )
         .size(10.0)
         .color(color::text_muted()),

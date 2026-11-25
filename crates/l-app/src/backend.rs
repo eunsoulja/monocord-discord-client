@@ -137,22 +137,24 @@ impl BackendShared {
     }
 }
 
-/// App data directory (`%APPDATA%/l` on Windows, `~/.local/share/l` on Linux).
+/// App data directory (`%APPDATA%/monocord/monocord` on Windows,
+/// `~/.local/share/monocord/monocord` on Linux).
 fn data_dir() -> PathBuf {
-    directories::ProjectDirs::from("dev", "l", "l").map_or_else(
-        || PathBuf::from("."),
-        |d| d.data_dir().to_path_buf(),
-    )
+    crate::monocord::app_data_dir()
 }
 
 fn open_db() -> Db {
-    let dir = directories::ProjectDirs::from("dev", "l", "l").map_or_else(
-        || PathBuf::from("l.db"),
-        |d| {
-            let _ = std::fs::create_dir_all(d.data_dir());
-            d.data_dir().join("l.db")
-        },
-    );
+    let dir = data_dir().join("monocord.db");
+    // One-time rename of the legacy database (and its WAL sidecars) inside
+    // a migrated data dir.
+    for suffix in ["", "-wal", "-shm"] {
+        let legacy = data_dir().join(format!("l.db{suffix}"));
+        let target = data_dir().join(format!("monocord.db{suffix}"));
+        if legacy.exists() && !target.exists() {
+            let _ = std::fs::rename(&legacy, &target);
+        }
+    }
+    let _ = std::fs::create_dir_all(data_dir());
     match Db::open(dir) {
         Ok(db) => db,
         Err(e) => {
@@ -1959,10 +1961,7 @@ fn write_export(shared: &Arc<BackendShared>, name: &str, contents: String) {
         .lock()
         .unwrap()
         .take()
-        .unwrap_or_else(|| {
-            directories::ProjectDirs::from("dev", "l", "l")
-                .map_or_else(|| PathBuf::from(name), |d| d.data_dir().join(name))
-        });
+        .unwrap_or_else(|| crate::monocord::app_data_dir().join(name));
     let _ = std::fs::write(&pending, contents);
     let _ = shared.app_tx.send(AppEvent::ServiceToast {
         text: format!("exported to {}", pending.display()),

@@ -23,6 +23,29 @@ pub fn data_dir() -> PathBuf {
     )
 }
 
+/// This app's own data dir (`%APPDATA%/monocord/monocord` on Windows) —
+/// SQLite db, webview profile, discord-mods, plugins, logs. One-time
+/// migration moves the legacy `dev/l/l` directory into place so the
+/// Discord login session and stored data survive the rename.
+#[must_use]
+pub fn app_data_dir() -> PathBuf {
+    let new = directories::ProjectDirs::from("dev", "monocord", "monocord").map_or_else(
+        || PathBuf::from("monocord-data"),
+        |d| d.data_dir().to_path_buf(),
+    );
+    let old = directories::ProjectDirs::from("dev", "l", "l").map_or_else(
+        || PathBuf::from("l-data"),
+        |d| d.data_dir().to_path_buf(),
+    );
+    if old != new && !new.exists() && old.exists()
+        && let Some(parent) = new.parent()
+    {
+        let _ = std::fs::create_dir_all(parent);
+        let _ = std::fs::rename(&old, &new);
+    }
+    new
+}
+
 fn settings_file() -> PathBuf {
     data_dir().join("renderer-settings.json")
 }

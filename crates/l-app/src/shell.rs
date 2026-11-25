@@ -35,13 +35,13 @@ fn page_icon(page: Page) -> Icon {
 /// Slim top bar: brand + context on the left, status + actions on the right.
 pub fn draw_titlebar(app: &mut LApp, ui: &mut Ui) {
     ui.horizontal(|ui| {
-        // Brand mark: accent rounded square with an "L".
+        // Brand mark: accent rounded square with an "M".
         let (mark, _) = ui.allocate_exact_size(vec2(22.0, 22.0), Sense::hover());
         ui.painter().rect_filled(mark, 6.0, color::accent());
         ui.painter().text(
             mark.center(),
             Align2::CENTER_CENTER,
-            "L",
+            "M",
             FontId::new(13.0, egui::FontFamily::Monospace),
             color::bg(),
         );
@@ -237,7 +237,7 @@ fn home_button(app: &mut LApp, ui: &mut Ui) {
     ui.painter().text(
         rect.center(),
         Align2::CENTER_CENTER,
-        "L",
+        "M",
         FontId::new(20.0, egui::FontFamily::Monospace),
         color::bg(),
     );

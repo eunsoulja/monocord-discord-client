@@ -1,6 +1,6 @@
 //! Discord client window — the Legcord approach in Rust.
 //!
-//! A dedicated child *process* (`l-app.exe --discord-web`) hosts a `wry`
+//! A dedicated child *process* (`Monocord.exe --discord-web`) hosts a `wry`
 //! `WebView2` window loading `discord.com` with a persistent profile, so the
 //! user's *real* Discord account is used — Discord's own client handles
 //! auth. CSS/JS "mods" are injected from `<data>/discord-mods`
@@ -97,10 +97,7 @@ pub fn mods_dir() -> PathBuf {
 }
 
 fn data_dir() -> PathBuf {
-    directories::ProjectDirs::from("dev", "l", "l").map_or_else(
-        || PathBuf::from("l-data"),
-        |d| d.data_dir().to_path_buf(),
-    )
+    monocord::app_data_dir()
 }
 
 /// Spawn the Discord client child process if it isn't already running.
@@ -191,12 +188,9 @@ pub fn run_client() {
 
 fn init_child_logging() {
     use tracing_subscriber::prelude::*;
-    let dir = directories::ProjectDirs::from("dev", "l", "l").map_or_else(
-        || PathBuf::from("."),
-        |d| d.data_dir().to_path_buf(),
-    );
+    let dir = monocord::app_data_dir();
     let _ = std::fs::create_dir_all(&dir);
-    let file_appender = tracing_appender::rolling::daily(&dir, "l-discord-web.log");
+    let file_appender = tracing_appender::rolling::daily(&dir, "discord-web.log");
     let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
     std::mem::forget(guard);
     tracing_subscriber::registry()
@@ -306,7 +300,7 @@ impl ApplicationHandler<WebMsg> for DiscordHandler {
         }
         let window = match event_loop.create_window(
             Window::default_attributes()
-                .with_title("L — Discord")
+                .with_title("Discord")
                 .with_inner_size(winit::dpi::LogicalSize::new(1280.0, 800.0))
                 .with_min_inner_size(winit::dpi::LogicalSize::new(960.0, 600.0))
                 .with_resizable(true),

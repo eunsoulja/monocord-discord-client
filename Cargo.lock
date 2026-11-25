@@ -3,6 +3,39 @@
 version = 4
 
 [[package]]
+name = "Monocord"
+version = "0.1.0"
+dependencies = [
+ "directories",
+ "eframe",
+ "egui",
+ "fuzzy-matcher",
+ "image",
+ "l-core",
+ "l-discord",
+ "l-plugins",
+ "l-runtime",
+ "l-storage",
+ "l-ui",
+ "l-widgets",
+ "lucide-icons",
+ "open",
+ "rfd",
+ "rusqlite",
+ "secrecy 0.10.3",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+ "winit",
+ "wry",
+]
+
+[[package]]
 name = "ab_glyph"
 version = "0.2.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3482,39 +3515,6 @@ dependencies = [
  "euclid",
  "polycool",
  "smallvec",
-]
-
-[[package]]
-name = "l-app"
-version = "0.1.0"
-dependencies = [
- "directories",
- "eframe",
- "egui",
- "fuzzy-matcher",
- "image",
- "l-core",
- "l-discord",
- "l-plugins",
- "l-runtime",
- "l-storage",
- "l-ui",
- "l-widgets",
- "lucide-icons",
- "open",
- "rfd",
- "rusqlite",
- "secrecy 0.10.3",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "tokio",
- "tokio-util",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
- "winit",
- "wry",
 ]
 
 [[package]]
