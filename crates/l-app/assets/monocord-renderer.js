@@ -2389,6 +2389,190 @@ ${CompactMessagesCSS}` : CompactMessagesCSS;
     }
     return out;
   }
+  var TYPE_LABELS = ["Playing", "Streaming", "Listening", "Watching", "", "", "Competing"];
+  function imageOrKey(h2, key, appId, size) {
+    const style = {
+      width: size,
+      height: size,
+      borderRadius: size > 40 ? 8 : "50%",
+      objectFit: "cover",
+      flexShrink: 0
+    };
+    if (/^https?:\/\//.test(key)) {
+      return h2("img", { src: key, style, alt: "" });
+    }
+    if (!key && appId) {
+      return h2("img", {
+        src: `https://cdn.discordapp.com/app-icons/${appId}/${appId}.png?size=128`,
+        style,
+        alt: "",
+        onError: (e) => {
+          if (e.target?.style) e.target.style.display = "none";
+        }
+      });
+    }
+    return h2(
+      "div",
+      {
+        style: {
+          ...style,
+          background: "var(--background-modifier-accent, #3f4147)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: size > 40 ? 22 : 11,
+          fontWeight: 700,
+          color: "var(--text-muted, #949ba4)",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          padding: 4,
+          boxSizing: "border-box"
+        }
+      },
+      key ? key.slice(0, 2).toUpperCase() : "?"
+    );
+  }
+  function presencePreview(h2, ctx, str, num, type, tsMode) {
+    const muted = "var(--text-muted, #949ba4)";
+    const normal = "var(--text-normal, #dbdee1)";
+    const appName = str("appName").trim();
+    const appId = str("appId").trim();
+    const details = str("details").trim();
+    const state = str("state").trim();
+    const detailsUrl = str("detailsUrl").trim();
+    const stateUrl = str("stateUrl").trim();
+    const imageBig = str("imageBig").trim();
+    const imageSmall = str("imageSmall").trim();
+    const btn1 = str("buttonOneText").trim();
+    const btn2 = str("buttonTwoText").trim();
+    const partySize = num("partySize");
+    const partyMax = num("partyMaxSize");
+    const configured = ctx.enabled && val0(ctx, "enabled") !== false && (appName || appId);
+    if (!configured) {
+      return h2(
+        "div",
+        {
+          style: {
+            background: "var(--background-secondary, #2b2d31)",
+            borderRadius: 8,
+            padding: "18px 14px",
+            fontSize: 13,
+            color: muted,
+            textAlign: "center"
+          }
+        },
+        ctx.enabled ? "No presence configured \u2014 set an app name or ID below." : "Plugin is disabled \u2014 enable it to see a preview."
+      );
+    }
+    const linkStyle = (url) => ({
+      color: url ? "var(--brand-500, #5865f2)" : normal,
+      textDecoration: url ? "underline" : "none",
+      cursor: url ? "pointer" : "default"
+    });
+    const line = (text, url, size = 13) => text ? h2(
+      "div",
+      { style: { fontSize: size, marginTop: 2, ...linkStyle(url) } },
+      url ? h2("a", { href: url, style: { color: "inherit" } }, text) : text
+    ) : null;
+    const buttons = [btn1, btn2].filter(Boolean);
+    const tsText = tsMode === "now" ? "Elapsed: live" : tsMode === "time" ? "Since midnight" : tsMode === "custom" ? [str("startTime"), str("endTime")].some((v) => Number(v) > 0) ? "Custom range" : "Custom (unset)" : null;
+    return h2(
+      "div",
+      {
+        style: {
+          background: "var(--background-secondary, #2b2d31)",
+          borderRadius: 8,
+          padding: 12,
+          display: "flex",
+          gap: 12,
+          maxWidth: 460
+        }
+      },
+      // images
+      h2(
+        "div",
+        { style: { position: "relative", flexShrink: 0 } },
+        imageOrKey(h2, imageBig, appId, 68),
+        imageSmall ? h2("div", {
+          style: {
+            position: "absolute",
+            right: -6,
+            bottom: -6,
+            borderRadius: "50%",
+            border: "3px solid var(--background-secondary, #2b2d31)"
+          }
+        }, imageOrKey(h2, imageSmall, appId, 30)) : null
+      ),
+      // text column
+      h2(
+        "div",
+        { style: { flex: 1, minWidth: 0 } },
+        h2(
+          "div",
+          { style: { display: "flex", alignItems: "baseline", gap: 6 } },
+          h2(
+            "div",
+            {
+              style: {
+                fontSize: 14,
+                fontWeight: 600,
+                color: normal,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
+              }
+            },
+            appName || "Custom RPC"
+          ),
+          h2(
+            "div",
+            { style: { fontSize: 11, color: muted, flexShrink: 0 } },
+            TYPE_LABELS[type] ?? "Playing"
+          )
+        ),
+        line(details, detailsUrl),
+        line(state, stateUrl),
+        buttons.length ? h2(
+          "div",
+          { style: { display: "flex", gap: 6, marginTop: 8 } },
+          buttons.map(
+            (b, i) => h2(
+              "div",
+              {
+                key: i,
+                style: {
+                  background: "var(--button-secondary-background, #4e5058)",
+                  color: normal,
+                  borderRadius: 4,
+                  padding: "4px 10px",
+                  fontSize: 12,
+                  fontWeight: 500
+                }
+              },
+              b
+            )
+          )
+        ) : null,
+        h2(
+          "div",
+          {
+            style: {
+              display: "flex",
+              gap: 10,
+              marginTop: 6,
+              fontSize: 11,
+              color: muted
+            }
+          },
+          tsText ? h2("span", null, tsText) : null,
+          partySize > 0 && partyMax > 0 ? h2("span", null, `${partySize}/${partyMax} in party`) : null
+        )
+      )
+    );
+  }
+  function val0(ctx, key) {
+    return ctx.values[key] ?? CustomRPC.settings?.[key];
+  }
   var dispatcher;
   async function pushConfig() {
     const s = await readSettings();
@@ -2443,70 +2627,288 @@ ${CompactMessagesCSS}` : CompactMessagesCSS;
       partySize: 0,
       partyMaxSize: 0
     },
-    settingsSchema: {
-      enabled: {
-        type: "boolean",
-        label: "Enable presence",
-        description: "Show your custom activity on your profile."
-      },
-      appId: {
-        type: "string",
-        label: "Application ID",
-        description: "Numeric id from discord.com/developers. Required for the IPC fallback and image keys.",
-        placeholder: "123456789012345678"
-      },
-      appName: {
-        type: "string",
-        label: "App name",
-        description: 'Name shown as the activity title (e.g. "Spotify").',
-        placeholder: "My App"
-      },
-      type: {
-        type: "select",
-        label: "Activity type",
-        options: ACTIVITY_TYPES.map((o) => ({ label: o.label, value: String(o.value) }))
-      },
-      details: { type: "string", label: "Details", placeholder: "In a match" },
-      detailsUrl: { type: "string", label: "Details URL", placeholder: "https://\u2026" },
-      state: { type: "string", label: "State", placeholder: "Ranked" },
-      stateUrl: { type: "string", label: "State URL", placeholder: "https://\u2026" },
-      streamUrl: {
-        type: "string",
-        label: "Stream URL",
-        description: "Twitch/YouTube URL \u2014 only used when type is Streaming.",
-        placeholder: "https://twitch.tv/\u2026"
-      },
-      timestampMode: {
-        type: "select",
-        label: "Timestamps",
-        options: TIMESTAMP_MODES.map((o) => ({ label: o.label, value: o.value }))
-      },
-      startTime: {
-        type: "number",
-        label: "Start (epoch ms)",
-        description: "Used when timestamps = Custom. 0 = unset."
-      },
-      endTime: {
-        type: "number",
-        label: "End (epoch ms)",
-        description: "Used when timestamps = Custom. 0 = unset."
-      },
-      imageBig: {
-        type: "string",
-        label: "Large image key",
-        description: "Asset key from the app's Rich Presence art assets."
-      },
-      imageBigTooltip: { type: "string", label: "Large image tooltip" },
-      imageBigUrl: { type: "string", label: "Large image URL", placeholder: "https://\u2026" },
-      imageSmall: { type: "string", label: "Small image key" },
-      imageSmallTooltip: { type: "string", label: "Small image tooltip" },
-      imageSmallUrl: { type: "string", label: "Small image URL", placeholder: "https://\u2026" },
-      buttonOneText: { type: "string", label: "Button 1 text" },
-      buttonOneUrl: { type: "string", label: "Button 1 URL", placeholder: "https://\u2026" },
-      buttonTwoText: { type: "string", label: "Button 2 text" },
-      buttonTwoUrl: { type: "string", label: "Button 2 URL", placeholder: "https://\u2026" },
-      partySize: { type: "number", label: "Party size" },
-      partyMaxSize: { type: "number", label: "Party max size" }
+    // Vencord-style dedicated settings UI (paired fields, validation,
+    // live presence preview) instead of the generic schema form.
+    settingsView(ctx) {
+      const { h: h2 } = ctx;
+      const defaults = CustomRPC.settings ?? {};
+      const val = (key) => ctx.values[key] ?? defaults[key];
+      const str = (key) => String(val(key) ?? "");
+      const num = (key) => Number(val(key) ?? 0) || 0;
+      const set = (key, value) => ctx.set(key, value);
+      const type = num("type");
+      const tsMode = str("timestampMode") || "none";
+      const disabled = !ctx.enabled;
+      const input = (key, opts = {}) => h2("input", {
+        type: opts.type ?? "text",
+        value: str(key),
+        placeholder: opts.placeholder,
+        disabled,
+        onChange: (e) => set(
+          key,
+          opts.type === "number" ? e.target.value === "" ? 0 : Number(e.target.value) : e.target.value
+        ),
+        style: {
+          width: opts.width ? `${opts.width}px` : "100%",
+          background: "var(--input-background, #1e1f22)",
+          color: "var(--text-normal, #dbdee1)",
+          border: "1px solid var(--background-modifier-accent, #3f4147)",
+          borderRadius: 4,
+          padding: "7px 10px",
+          fontSize: 13,
+          boxSizing: "border-box",
+          opacity: disabled ? 0.5 : 1
+        }
+      });
+      const select = (key, options) => h2(
+        "select",
+        {
+          value: str(key),
+          disabled,
+          onChange: (e) => set(key, e.target.value),
+          style: {
+            width: "100%",
+            background: "var(--input-background, #1e1f22)",
+            color: "var(--text-normal, #dbdee1)",
+            border: "1px solid var(--background-modifier-accent, #3f4147)",
+            borderRadius: 4,
+            padding: "7px 10px",
+            fontSize: 13
+          }
+        },
+        options.map(
+          (o) => h2("option", { key: o.value, value: o.value }, o.label)
+        )
+      );
+      const label = (text) => h2(
+        "div",
+        {
+          style: {
+            fontSize: 12,
+            fontWeight: 600,
+            color: "var(--text-muted, #949ba4)",
+            margin: "14px 0 6px",
+            textTransform: "uppercase",
+            letterSpacing: "0.04em"
+          }
+        },
+        text
+      );
+      const hint = (text) => h2(
+        "div",
+        {
+          style: {
+            fontSize: 11,
+            color: "var(--text-muted, #949ba4)",
+            marginTop: 3
+          }
+        },
+        text
+      );
+      const warn = (text) => h2(
+        "div",
+        {
+          style: {
+            fontSize: 11,
+            color: "var(--status-warning, #f0b232)",
+            marginTop: 3
+          }
+        },
+        text
+      );
+      const field = (text, control, extra) => h2(
+        "div",
+        { style: { flex: 1, minWidth: 0 } },
+        h2(
+          "div",
+          {
+            style: {
+              fontSize: 12,
+              fontWeight: 500,
+              marginBottom: 4,
+              color: "var(--text-normal, #dbdee1)"
+            }
+          },
+          text
+        ),
+        control,
+        extra ?? null
+      );
+      const pair = (a, b) => h2(
+        "div",
+        { style: { display: "flex", gap: 12 } },
+        field(...a),
+        b ? field(...b) : null
+      );
+      const appId = str("appId").trim();
+      const appIdWarn = appId && !/^\d{5,25}$/.test(appId) ? warn("Application ID must be numeric (5\u201325 digits).") : null;
+      const urlWarn = (key) => {
+        const v = str(key).trim();
+        return v && !/^https?:\/\//.test(v) ? warn("Must be a valid http(s) URL.") : null;
+      };
+      const imageWarn = (key) => {
+        const v = str(key).trim();
+        if (!v || !/^https?:\/\//.test(v)) return null;
+        if (/discordapp\.(com|net)/.test(v))
+          return warn("Don't use a Discord CDN link \u2014 use Imgur instead.");
+        if (/imgur\.com\//.test(v) && !/i\.imgur\.com/.test(v))
+          return warn("Use a direct image URL (i.imgur.com/\u2026).");
+        return null;
+      };
+      const streamWarn = type === 1 && !str("streamUrl").trim() ? warn("Streaming type needs a Twitch/YouTube URL.") : null;
+      const onlyPlaying = type !== 0;
+      const customTs = tsMode !== "custom";
+      return h2(
+        "div",
+        null,
+        // -- live preview -------------------------------------------
+        label("Preview"),
+        h2(
+          "div",
+          { style: { display: "flex", alignItems: "center", gap: 8, margin: "0 0 8px" } },
+          h2("input", {
+            type: "checkbox",
+            checked: val("enabled") !== false,
+            disabled,
+            onChange: (e) => set("enabled", e.target.checked)
+          }),
+          h2("span", { style: { fontSize: 13 } }, "Show this presence")
+        ),
+        presencePreview(h2, ctx, str, num, type, tsMode),
+        label("Activity"),
+        pair(
+          ["Activity type", select("type", ACTIVITY_TYPES)],
+          [
+            "Timestamps",
+            select("timestampMode", TIMESTAMP_MODES)
+          ]
+        ),
+        pair(
+          [
+            "Application ID",
+            input("appId", {
+              placeholder: "123456789012345678"
+            }),
+            appIdWarn
+          ],
+          [
+            "App name",
+            input("appName", { placeholder: "Spotify" }),
+            hint("Shown as the activity title. Required.")
+          ]
+        ),
+        label("Text"),
+        pair(
+          [
+            "Details (line 1)",
+            input("details", { placeholder: "In a match" }),
+            urlWarn("detailsUrl")
+          ],
+          [
+            "Details URL",
+            input("detailsUrl", { placeholder: "https://\u2026" })
+          ]
+        ),
+        pair(
+          [
+            "State (line 2)",
+            input("state", { placeholder: "Ranked" }),
+            urlWarn("stateUrl")
+          ],
+          [
+            "State URL",
+            input("stateUrl", { placeholder: "https://\u2026" })
+          ]
+        ),
+        type === 1 ? h2(
+          "div",
+          { style: { marginTop: 10 } },
+          field(
+            "Stream URL (Twitch/YouTube)",
+            input("streamUrl", {
+              placeholder: "https://twitch.tv/\u2026"
+            }),
+            streamWarn
+          )
+        ) : null,
+        label("Images"),
+        pair(
+          [
+            "Large image key/URL",
+            input("imageBig", { placeholder: "spotify:album:\u2026 or https://\u2026" }),
+            imageWarn("imageBig")
+          ],
+          [
+            "Large image tooltip",
+            input("imageBigTooltip")
+          ]
+        ),
+        h2(
+          "div",
+          { style: { marginTop: 4 } },
+          field(
+            "Large image click URL",
+            input("imageBigUrl", { placeholder: "https://\u2026" }),
+            urlWarn("imageBigUrl")
+          )
+        ),
+        pair(
+          [
+            "Small image key/URL",
+            input("imageSmall", { placeholder: "spotify:artist:\u2026" }),
+            imageWarn("imageSmall")
+          ],
+          [
+            "Small image tooltip",
+            input("imageSmallTooltip")
+          ]
+        ),
+        h2(
+          "div",
+          { style: { marginTop: 4 } },
+          field(
+            "Small image click URL",
+            input("imageSmallUrl", { placeholder: "https://\u2026" }),
+            urlWarn("imageSmallUrl")
+          )
+        ),
+        label("Buttons & party"),
+        pair(
+          ["Button 1 text", input("buttonOneText", { placeholder: "Join" })],
+          ["Button 1 URL", input("buttonOneUrl", { placeholder: "https://\u2026" })]
+        ),
+        pair(
+          ["Button 2 text", input("buttonTwoText")],
+          ["Button 2 URL", input("buttonTwoUrl", { placeholder: "https://\u2026" })]
+        ),
+        pair(
+          [
+            "Party size",
+            input("partySize", { type: "number", placeholder: "2" }),
+            onlyPlaying ? hint("Only used for Playing type.") : null
+          ],
+          [
+            "Max party size",
+            input("partyMaxSize", { type: "number", placeholder: "5" })
+          ]
+        ),
+        label("Custom timestamps"),
+        h2(
+          "div",
+          { style: { opacity: customTs ? 0.5 : 1 } },
+          pair(
+            [
+              "Start (epoch ms)",
+              input("startTime", { type: "number", placeholder: "1700000000000" })
+            ],
+            [
+              "End (epoch ms)",
+              input("endTime", { type: "number", placeholder: "1700003600000" })
+            ]
+          ),
+          customTs ? hint("Enable 'Custom start/end' timestamp mode to use these.") : null
+        )
+      );
     },
     async start() {
       Api.Events.on("settings.changed", (payload) => {
@@ -7766,6 +8168,20 @@ ${CompactMessagesCSS}` : CompactMessagesCSS;
     componentWillUnmount() {
       this.offs.forEach((off) => off());
       this.offs = [];
+      for (const [tkey, timer2] of this.persistTimers) {
+        clearTimeout(timer2);
+        const dot = tkey.indexOf(".");
+        const name = tkey.slice(0, dot);
+        const key = tkey.slice(dot + 1);
+        const value = this.state.values[name]?.[key];
+        if (value !== void 0) {
+          void Settings.set(`plugins.settings.${name}.${key}`, value).catch(
+            () => {
+            }
+          );
+        }
+      }
+      this.persistTimers.clear();
     }
     settingKeys(plugin) {
       return plugin.settings ? Object.keys(plugin.settings) : [];
@@ -7788,13 +8204,25 @@ ${CompactMessagesCSS}` : CompactMessagesCSS;
         values: { ...this.state.values, [name]: values }
       });
     }
+    // Debounce settings.json writes — custom views (e.g. CustomRPC) call
+    // set() per keystroke, and each write is a full-document IPC save.
+    persistTimers = /* @__PURE__ */ new Map();
     setSetting(name, key, value, plugin) {
       const cur = this.state.values[name] ?? {};
       this.setState({
         values: { ...this.state.values, [name]: { ...cur, [key]: value } }
       });
-      void Settings.set(`plugins.settings.${name}.${key}`, value).catch(
-        (e) => log17.error(`settings set ${name}.${key} failed`, e)
+      const tkey = `${name}.${key}`;
+      const prev = this.persistTimers.get(tkey);
+      if (prev) clearTimeout(prev);
+      this.persistTimers.set(
+        tkey,
+        setTimeout(() => {
+          this.persistTimers.delete(tkey);
+          void Settings.set(`plugins.settings.${name}.${key}`, value).catch(
+            (e) => log17.error(`settings set ${name}.${key} failed`, e)
+          );
+        }, 400)
       );
     }
     renderField(name, plugin, key, field) {
@@ -7957,6 +8385,59 @@ ${CompactMessagesCSS}` : CompactMessagesCSS;
     }
     renderSettingsBody(name, plugin) {
       const { drafts, errors } = this.state;
+      if (plugin.settingsView) {
+        const ctx = {
+          h,
+          values: this.state.values[name] ?? {},
+          set: (key, value) => this.setSetting(name, key, value, plugin),
+          enabled: Api.Plugins.isEnabled(name)
+        };
+        return h(
+          "div",
+          { style: { marginTop: 14 } },
+          plugin.settingsView(ctx),
+          // Escape hatch: raw JSON editor for power users.
+          h(
+            "details",
+            { style: { marginTop: 14 } },
+            h("summary", { style: S.muted }, "Advanced: raw JSON"),
+            h("textarea", {
+              style: {
+                ...S.input,
+                minHeight: 120,
+                resize: "vertical",
+                marginTop: 8
+              },
+              value: drafts[name] ?? "",
+              placeholder: "{}",
+              onChange: (e) => this.setState({
+                drafts: {
+                  ...this.state.drafts,
+                  [name]: e.target.value
+                }
+              })
+            }),
+            h(
+              "div",
+              {
+                style: {
+                  ...S.row,
+                  marginTop: 8,
+                  justifyContent: "flex-start"
+                }
+              },
+              h(
+                "button",
+                {
+                  style: S.btnOff,
+                  onClick: () => this.saveSettings(name, plugin)
+                },
+                "Save JSON"
+              )
+            )
+          )
+        );
+      }
       if (plugin.settingsSchema) {
         return h(
           "div",
